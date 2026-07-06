@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>MIOSPORTS 贊助管理系統</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0f172a; color: #f1f5f9; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        header { background-color: #1e293b; padding: 15px 25px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
+        h1 { margin: 0; font-size: 20px; color: #ffffff; }
+        .wrapper { display: flex; flex-direction: row; flex: 1; overflow: hidden; height: calc(100vh - 60px); width: 100%; }
+        .sidebar-left { width: 320px; background-color: #1e293b; border-right: 1px solid #334155; padding: 20px; display: flex; flex-direction: column; flex-shrink: 0; box-sizing: border-box; }
+        .sidebar-right { width: 360px; background-color: #1e293b; border-left: 1px solid #334155; padding: 20px; display: flex; flex-direction: column; flex-shrink: 0; box-sizing: border-box; }
+        .main-panel { flex: 1; background-color: #0f172a; padding: 25px; overflow-y: auto; box-sizing: border-box; }
+        .add-box { background-color: #111827; border: 1px solid #374151; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
+        .add-box h3 { margin: 0 0 10px 0; font-size: 13px; color: #f97316; text-transform: uppercase; }
+        .input-group { display: flex; gap: 8px; margin-bottom: 8px; }
+        .search-group { margin-bottom: 15px; }
+        .search-input { background-color: #0f172a; border: 1px solid #4b5563; color: white; padding: 8px 12px; border-radius: 6px; font-size: 13px; width: 100%; box-sizing: border-box; }
+        .search-input:focus { border-color: #f97316; outline: none; }
+        input, select { background-color: #1f2937; border: 1px solid #4b5563; color: white; padding: 8px; border-radius: 6px; font-size: 13px; width: 100%; box-sizing: border-box; }
+        button { background-color: #f97316; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold; white-space: nowrap; }
+        button:hover { background-color: #ea580c; }
+        .list-item { background-color: #1f2937; border: 1px solid #374151; padding: 12px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .list-item:hover { border-color: #4b5563; background-color: #2d3748; }
+        .list-item.active-kol { background-color: #f97316; border-color: #ea580c; color: white; font-weight: bold; }
+        .badge { background-color: #374151; color: #9ca3af; font-size: 11px; padding: 2px 6px; border-radius: 4px; }
+        .scroll-area { flex: 1; overflow-y: auto; }
+        .scroll-area::-webkit-scrollbar { display: none; }
+        
+        .card { background-color: #1f2937; border: 1px solid #374151; border-radius: 8px; padding: 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; }
+        .card:hover { border-color: #4b5563; }
+        .card.active-eq { border-color: #3b82f6; background-color: #1e3a8a; }
+        .card-title { font-weight: bold; font-size: 15px; margin: 0; color: white; }
+        .card-sub { font-size: 12px; color: #9ca3af; margin: 0; }
+        .card-price { font-size: 14px; color: #f97316; font-weight: bold; margin: 4px 0 0 0; }
+        .card-bottom { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #374151; padding-top: 8px; margin-top: 4px; }
+        .card-id { font-size: 11px; color: #6b7280; }
+        
+        .summary-banner { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .banner-title { font-size: 22px; font-weight: bold; margin: 0; }
+        .banner-sub { font-size: 13px; color: #9ca3af; margin: 5px 0 0 0; }
+        .price-tag { background-color: #111827; border: 1px solid #334155; padding: 12px 20px; border-radius: 10px; text-align: right; min-w: 150px; }
+        .price-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; margin: 0 0 4px 0; }
+        .price-val { font-size: 22px; font-weight: bold; color: #f97316; margin: 0; }
+        .price-val.blue { color: #3b82f6; }
+        
+        table { width: 100%; border-collapse: collapse; background-color: #1e293b; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
+        th { background-color: #111827; color: #9ca3af; padding: 12px; font-size: 12px; text-align: left; }
+        td { padding: 14px 12px; font-size: 13px; border-bottom: 1px solid #334155; color: #cbd5e1; }
+        tr:hover td { background-color: #24324d; }
+        .empty-view { text-align: center; color: #6b7280; padding: 100px 0; font-size: 15px; border: 2px dashed #334155; border-radius: 12px; margin-top: 20px; }
+        
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 999; }
+        .modal-body { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; width: 380px; padding: 20px; }
+        .modal-body h3 { margin: 0 0 15px 0; }
+        
+        .modal-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 25px; border-top: 1px solid #334155; padding-top: 15px; }
+        .modal-footer-right { display: flex; gap: 10px; }
+        
+        .btn-table-edit { background-color: #4b5563; color: white; font-size: 12px; padding: 4px 8px; border-radius: 6px; }
+        .btn-table-edit:hover { background-color: #6b7280; }
+        .btn-cancel { background-color: #374151; color: #9ca3af; }
+        .btn-cancel:hover { background-color: #4b5563; color: white; }
+        
+        .btn-pop-del { background-color: #ef4444; color: white; font-size: 12px; }
+        .btn-pop-del:hover { background-color: #dc2626; }
+
+        .btn-kol-edit { background: none; border: none; color: #9ca3af; cursor: pointer; padding: 2px 6px; font-size: 14px; border-radius: 4px; transition: all 0.2s; }
+        .btn-kol-edit:hover { background-color: #4b5563; color: white; }
+        .active-kol .btn-kol-edit { color: white; }
+        .active-kol .btn-kol-edit:hover { background-color: rgba(255,255,255,0.2); }
+
+        .sku-badge { font-family: monospace; background-color: #0f172a; border: 1px solid #4b5563; padding: 2px 6px; border-radius: 4px; color: #38bdf8; font-size: 12px; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.9); color: white; display: flex; justify-content: center; align-items: center; font-size: 18px; font-weight: bold; z-index: 9999; }
+    </style>
+</head>
+<body>
+
+    <div class="loading-overlay" id="loadingView">⏳ 正在與 Google 雲端庫存連線中，請稍候...</div>
+
+    <header>
+        <h1>MIOSPORTS 贊助管理系統</h1>
+        <div style="font-size: 12px; color: #38bdf8; background: #0f172a; padding: 4px 12px; border-radius: 20px; font-weight: bold;" id="syncStatus">● 雲端即時連線狀態</div>
+    </header>
+
+    <div class="wrapper">
+        <div class="sidebar-left">
+            <div class="add-box">
+                <h3>➕ 快速新增人員</h3>
+                <div class="input-group">
+                    <input type="text" id="addName" placeholder="請輸入姓名 (必填)...">
+                </div>
+                <div class="input-group">
+                    <input type="text" id="addLink" placeholder="🔗 社群網址 (選填)...">
+                </div>
+                <div class="input-group">
+                    <select id="addPlatform">
+                        <option value="Instagram">Instagram</option>
+                        <option value="Facebook">Facebook</option>
+                        <option value="YouTube">YouTube</option>
+                    </select>
+                    <button onclick="clickAddKOL()">新增</button>
+                </div>
+            </div>
+            
+            <div class="search-group">
+                <input type="text" id="kolSearch" oninput="filterKols()" placeholder="🔍 搜尋 KOL 姓名或平台..." class="search-input">
+            </div>
+
+            <div style="font-size:12px; color:#9ca3af; margin-bottom:8px; font-weight: bold;">贊助人員清單 (KOL)</div>
+            <div class="scroll-area" id="kolContainer"></div>
+        </div>
+
+        <div class="main-panel">
+            <div id="blankPage" class="empty-view">
+                💡 請先點選左側「KOL 姓名」鎖定對象，再至右側點擊「➕ 發放」裝備
+            </div>
+            
+            <div id="mainPage" style="display: none;">
+                <div class="summary-banner">
+                    <div>
+                        <span id="viewTag" style="font-size:11px; font-weight:bold; background:#ea580c; padding:2px 6px; border-radius:4px; color:white;">KOL</span>
+                        <h2 class="banner-title" id="mTitle">---</h2>
+                        <p class="banner-sub" id="mSub">---</p>
+                    </div>
+                    <div class="price-tag">
+                        <p class="price-label" id="mLabel">贊助品項總額</p>
+                        <p class="price-val" id="mValue">NT$ 0</p>
+                    </div>
+                </div>
+
+                <div style="font-size: 14px; font-weight: bold; margin-bottom: 12px; color: white;" id="listTitle">持有裝備明細</div>
+                <table>
+                    <thead>
+                        <tr id="thGroup"></tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="sidebar-right">
+            <div class="search-group">
+                <input type="text" id="equipSearch" oninput="filterEquips()" placeholder="🔍 搜尋品名、貨號..." class="search-input">
+            </div>
+
+            <div style="font-size:12px; color:#9ca3af; margin-bottom:12px; font-weight: bold;">裝備庫 (點選卡牌可反查)</div>
+            <div class="scroll-area" id="eqContainer"></div>
+        </div>
+    </div>
+
+    <!-- 裝備發放彈窗 -->
+    <div class="modal" id="myModal">
+        <div class="modal-body">
+            <h3 id="modalHead">新增裝備發放</h3>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; color:#9ca3af;">發放對象</label>
+                <input type="text" id="popKOL" readonly style="background:#111827; margin-top:4px;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; color:#9ca3af;">發放裝備品項</label>
+                <input type="text" id="popEQ" readonly style="background:#111827; margin-top:4px;">
+            </div>
+            
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; color:#9ca3af;">🎨 選擇顏色</label>
+                <select id="popColor" style="margin-top:4px;"></select>
+            </div>
+
+            <div class="input-group" style="margin-bottom:12px;">
+                <div style="flex:1;">
+                    <label style="font-size:12px; color:#9ca3af;">尺寸</label>
+                    <select id="popSize" style="margin-top:4px;">
+                        <option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option>
+                        <option>T1</option><option>T2</option><option>T3</option><option>T4</option>
+                        <option>XS/S</option><option>M/L</option><option>XL/XXL</option><option>N/A</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label style="font-size:12px; color:#9ca3af;">數量</label>
+                    <input type="number" id="popQty" value="1" min="1" style="margin-top:4px;">
+                </div>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; color:#9ca3af;">📝 發放備註 (選填)</label>
+                <input type="text" id="popNote" placeholder="例如：賽事贊助、拍攝使用..." style="margin-top:4px;">
+            </div>
+            
+            <div class="modal-footer">
+                <button id="btnPopDelete" class="btn-pop-del" onclick="clickDeleteInsideModal()">🗑️ 刪除品項</button>
+                <div class="modal-footer-right">
+                    <button class="btn-cancel" onclick="closePop()">取消</button>
+                    <button id="btnConfirmSubmit" onclick="confirmSend()">確認發放</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KOL 修改彈窗 -->
+    <div class="modal" id="kolModal">
+        <div class="modal-body">
+            <h3>⚙️ 編輯贊助人員資料</h3>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; color:#9ca3af;">人員姓名</label>
+                <input type="text" id="editKolName" style="margin-top:4px;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; color:#9ca3af;">經營平台</label>
+                <select id="editKolPlatform" style="margin-top:4px;">
+                    <option value="Instagram">Instagram</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="YouTube">YouTube</option>
+                </select>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; color:#9ca3af;">🔗 社群網址</label>
+                <input type="text" id="editKolLink" style="margin-top:4px;">
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn-pop-del" onclick="clickDeleteKOL()">🗑️ 刪除人員</button>
+                <div class="modal-footer-right">
+                    <button class="btn-cancel" onclick="closeKolPop()">取消</button>
+                    <button onclick="confirmSaveKOL()">儲存修改</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwzGo_N2PH2M1_i7IVgyfW1kireASBWLyrw5t5wabC1OSSFVjd_kznvykVct4f51LLYkQ/exec";
+
+        let kols = [];
+        let equips = [];
+        let skuLookupTable = {};
+        let mappings = [];
+
+        let activeKOLId = null;
+        let activeEQId = null;
+        let currentMode = "KOL"; 
+        let tempEqObj = null;
+        let modalMode = "ADD"; 
+        let editingMapId = null; 
+        let editingKOLId = null; 
+
+        initCloudConnection();
+
+        function initCloudConnection() {
+            document.getElementById("loadingView").style.display = "flex";
+            
+            fetch(`${GAS_API_URL}?action=getData`, {
+                method: "GET",
+                redirect: "follow"
+            })
+            .then(res => {
+                if(!res.ok) throw new Error("HTTP 狀態錯誤：" + res.status);
+                return res.json();
+            })
+            .then(cloudData => {
+                kols = cloudData.kols;
+                equips = cloudData.equips;
+                skuLookupTable = cloudData.skuLookupTable;
+                mappings = cloudData.mappings;
+                
+                refreshKOLList(kols);
+                refreshEquipGrid(equips);
+                
+                document.getElementById("loadingView").style.display = "none";
+                document.getElementById("syncStatus").innerText = "● 雲端資料同步完畢";
+                document.getElementById("syncStatus").style.color = "#10b981";
+            })
+            .catch(err => {
+                console.error(err);
+                alert("連線失敗！通常是因為 Google 試算表後端程式碼執行出錯（報錯 500）。");
+            });
+        }
+
+        function saveToCloud() {
+            document.getElementById("syncStatus").innerText = "⚡ 正在同步明細至雲端...";
+            document.getElementById("syncStatus").style.color = "#f59e0b";
+            
+            fetch(GAS_API_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "saveMapping", data: mappings })
+            }).then(() => {
+                document.getElementById("syncStatus").innerText = "● 變更已即時寫入雲端";
+                document.getElementById("syncStatus").style.color = "#10b981";
+            }).catch(err => {
+                alert("雲端同步失敗：" + err);
+            });
+        }
+
+        function getExactSKU(eqId, color, size) {
+            let cleanEqId = String(eqId).trim().toUpperCase();
+            let cleanColor = String(color || '單一規格').trim().toUpperCase();
+            let cleanSize = String(size || 'N/A').trim().toUpperCase();
+            
+            let key = `${cleanEqId}_${cleanColor}_${cleanSize}`;
+            
+            if (skuLookupTable[key]) {
+                return skuLookupTable[key];
+            } else {
+                return `❌找不到:${key}`;
+            }
+        }
+
+        function refreshKOLList(data) {
+            let html = "";
+            data.forEach(k => {
+                let cls = (activeKOLId === k.id && currentMode === "KOL") ? "list-item active-kol" : "list-item";
+                html += `<div class="${cls}" onclick="selectKOL('${k.id}')">
+                    <span>${k.name}</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="badge" style="${activeKOLId === k.id && currentMode === 'KOL' ? 'background:white;color:#f97316;' : ''}">${k.platform}</span>
+                        <button class="btn-kol-edit" onclick="clickEditKOL('${k.id}', event)">⚙️</button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById("kolContainer").innerHTML = html;
+        }
+
+        function refreshEquipGrid(data) {
+            let html = "";
+            data.forEach(e => {
+                let cls = (activeEQId === e.id && currentMode === "EQ") ? "card active-eq" : "card";
+                html += `<div class="${cls}" onclick="selectEQ('${e.id}', event)">
+                    <div class="card-header">
+                        <p class="card-title">${e.name}</p>
+                    </div>
+                    <p class="card-sub">主編號: ${e.id} | 型號: ${e.model}</p>
+                    <p class="card-price">NT$ ${Number(e.price).toLocaleString()}</p>
+                    <div class="card-bottom">
+                        <span class="card-id">可選規格數: ${e.colors ? e.colors.split(',').length : 1}</span>
+                        <button class="btn-send" onclick="clickSendBtn('${e.id}', event)">➕ 發放</button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById("eqContainer").innerHTML = html;
+        }
+
+        function filterKols() {
+            let query = document.getElementById("kolSearch").value.toLowerCase();
+            let filtered = kols.filter(k => k.name.toLowerCase().includes(query) || k.platform.toLowerCase().includes(query));
+            refreshKOLList(filtered);
+        }
+
+        function filterEquips() {
+            let query = document.getElementById("equipSearch").value.toLowerCase();
+            let filtered = equips.filter(e => e.name.toLowerCase().includes(query) || e.model.toLowerCase().includes(query));
+            refreshEquipGrid(filtered);
+        }
+
+        function clickAddKOL() {
+            let name = document.getElementById("addName").value.trim();
+            let platform = document.getElementById("addPlatform").value;
+            let link = document.getElementById("addLink").value.trim();
+            if(!name) { alert("請輸入人員姓名！"); return; }
+            
+            let newId = "K_" + Date.now();
+            let newKolObj = { id: newId, name: name, platform: platform, link: link };
+            
+            kols.unshift(newKolObj);
+            document.getElementById("addName").value = "";
+            document.getElementById("addLink").value = "";
+            refreshKOLList(kols);
+            selectKOL(newId);
+            
+            updateKOLToCloud("addKOL", newKolObj, "新KOL已永久連動寫入雲端");
+        }
+
+        function clickEditKOL(id, event) {
+            event.stopPropagation(); 
+            editingKOLId = id;
+            let kolObj = kols.find(k => k.id === id);
+            if(!kolObj) return;
+
+            document.getElementById("editKolName").value = kolObj.name;
+            document.getElementById("editKolPlatform").value = kolObj.platform;
+            document.getElementById("editKolLink").value = kolObj.link || "";
+            document.getElementById("kolModal").style.display = "flex";
+        }
+
+        function closeKolPop() { document.getElementById("kolModal").style.display = "none"; }
+
+        function confirmSaveKOL() {
+            let name = document.getElementById("editKolName").value.trim();
+            let platform = document.getElementById("editKolPlatform").value;
+            let link = document.getElementById("editKolLink").value.trim();
+            if(!name) { alert("姓名不能為空！"); return; }
+
+            let kolObj = kols.find(k => k.id === editingKOLId);
+            if (kolObj) {
+                kolObj.name = name;
+                kolObj.platform = platform;
+                kolObj.link = link;
+            }
+
+            refreshKOLList(kols);
+            if(activeKOLId === editingKOLId) refreshCenter(); 
+            closeKolPop();
+
+            updateKOLToCloud("updateKOL", kolObj, "KOL資料已成功同步更新");
+        }
+
+        function clickDeleteKOL() {
+            let kolObj = kols.find(k => k.id === editingKOLId);
+            if(!kolObj) return;
+
+            let check = confirm(`確定要永久刪除贊助人員「${kolObj.name}」嗎？\n⚠️ 注意：此操作亦會一併清空他在本系統中的裝備配發紀錄。`);
+            if (!check) return;
+
+            kols = kols.filter(k => k.id !== editingKOLId);
+            mappings = mappings.filter(m => m.kolId !== editingKOLId); 
+
+            if (activeKOLId === editingKOLId) {
+                activeKOLId = null;
+                document.getElementById("blankPage").style.display = "block";
+                document.getElementById("mainPage").style.display = "none";
+            }
+
+            refreshKOLList(kols);
+            closeKolPop();
+
+            updateKOLToCloud("deleteKOL", { id: editingKOLId }, "KOL名冊與配發紀錄已同步自雲端移出");
+        }
+
+        function updateKOLToCloud(actionType, kolData, successMsg) {
+            document.getElementById("syncStatus").innerText = "⚡ 正在連動寫入雲端變更...";
+            document.getElementById("syncStatus").style.color = "#f59e0b";
+
+            fetch(GAS_API_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: actionType, kol: kolData, allMappings: mappings })
+            }).then(() => {
+                document.getElementById("syncStatus").innerText = `● ${successMsg}`;
+                document.getElementById("syncStatus").style.color = "#10b981";
+            }).catch(err => {
+                alert("雲端同步失敗：" + err);
+            });
+        }
+
+        // 🌟 已修復：點擊 KOL 時，同步呼叫 refreshKOLList 更新左側橘色選取狀態
+        function selectKOL(id) {
+            activeKOLId = id;
+            currentMode = "KOL";
+            activeEQId = null; 
+            refreshKOLList(kols); // ⬅️ 關鍵！重新整理左側選取狀態
+            refreshCenter();
+        }
+
+        function selectEQ(id, event) {
+            activeEQId = id;
+            currentMode = "EQ";
+            refreshCenter();
+        }
+
+        function refreshCenter() {
+            document.getElementById("blankPage").style.display = "none";
+            document.getElementById("mainPage").style.display = "block";
+
+            let tbody = document.getElementById("tableBody");
+            let thGroup = document.getElementById("thGroup");
+            tbody.innerHTML = "";
+
+            if (currentMode === "KOL") {
+                let kol = kols.find(k => k.id === activeKOLId);
+                document.getElementById("viewTag").innerText = "KOL 視角";
+                document.getElementById("viewTag").style.background = "#ea580c";
+                document.getElementById("mTitle").innerText = kol ? kol.name : '未知';
+                document.getElementById("mSub").innerHTML = `${kol ? kol.platform : '---'} 贊助對象`;
+                
+                document.getElementById("mLabel").innerText = "贊助品項總額";
+                document.getElementById("listTitle").innerText = "持有贊助裝備明細";
+                document.getElementById("mValue").className = "price-val";
+
+                thGroup.innerHTML = `<th>裝備品名</th><th>貨號</th><th>顏色</th><th>尺寸</th><th>單價</th><th>數量</th><th>總計</th><th>發放日期</th><th>📝 備註</th><th style="text-align:center;">⚙️ 管理</th>`;
+
+                let subtotal = 0;
+                let list = mappings.filter(m => m.kolId === activeKOLId);
+                
+                list.forEach(m => {
+                    let eq = equips.find(e => e.id === m.eqId);
+                    let price = eq ? Number(eq.price) : 0;
+                    let rowSum = price * m.qty;
+                    subtotal += rowSum;
+                    let exactSku = getExactSKU(m.eqId, m.color, m.size);
+
+                    tbody.innerHTML += `<tr>
+                        <td style="font-weight:bold; color:white;">${eq ? eq.name : '未知'}</td>
+                        <td><span class="sku-badge">${exactSku}</span></td>
+                        <td><span style="background:#1e293b; border:1px solid #475569; padding:2px 6px; border-radius:4px; font-size:12px; color:#cbd5e1;">${m.color || '未指定'}</span></td>
+                        <td><span style="background:#475569;padding:2px 6px;border-radius:4px;font-size:11px;color:white;">${m.size}</span></td>
+                        <td style="color:#9ca3af;">NT$ ${price.toLocaleString()}</td>
+                        <td>${m.qty} 件</td>
+                        <td style="color:#f97316; font-weight:bold;">NT$ ${rowSum.toLocaleString()}</td>
+                        <td style="color:#9ca3af; font-size:12px;">${String(m.date).split('T')[0]}</td>
+                        <td style="color:#e2e8f0; font-size:12px; max-width:150px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${m.note || '---'}</td>
+                        <td style="text-align:center; white-space:nowrap;">
+                            <button class="btn-table-edit" onclick="clickEditRow('${m.mapId}')">⚙️ 調整</button>
+                        </td>
+                    </tr>`;
+                });
+                document.getElementById("mValue").innerText = `NT$ ${subtotal.toLocaleString()}`;
+            } 
+            else if (currentMode === "EQ") {
+                let eq = equips.find(e => e.id === activeEQId);
+                document.getElementById("viewTag").innerText = "裝備查詢";
+                document.getElementById("viewTag").style.background = "#2563eb";
+                document.getElementById("mTitle").innerText = eq ? eq.name : '未知';
+                document.getElementById("mSub").innerText = `貨號: ${eq ? eq.model : '---'} | 單價: NT$ ${eq ? Number(eq.price).toLocaleString() : 0}`;
+                document.getElementById("mLabel").innerText = "此單品已發放總件數";
+                document.getElementById("listTitle").innerText = "領取此裝備的 KOL 人員名單";
+                document.getElementById("mValue").className = "price-val blue";
+
+                thGroup.innerHTML = `<th>KOL 姓名</th><th>經營平台</th><th>配發顏色</th><th>領取尺寸</th><th>🆔 對應貨號</th><th>數量</th><th>發放日期</th><th>📝 備註</th><th style="text-align:center;">⚙️ 管理</th>`;
+
+                let totalQty = 0;
+                let list = mappings.filter(m => m.eqId === activeEQId);
+
+                list.forEach(m => {
+                    let kol = kols.find(k => k.id === m.kolId);
+                    totalQty += m.qty;
+                    let exactSku = getExactSKU(m.eqId, m.color, m.size);
+
+                    tbody.innerHTML += `<tr>
+                        <td style="font-weight:bold; color:white;">${kol ? kol.name : '未知'}</td>
+                        <td><span class="badge">${kol ? kol.platform : '---'}</span></td>
+                        <td><span style="background:#1e293b; border:1px solid #475569; padding:2px 6px; border-radius:4px; font-size:12px;">${m.color}</span></td>
+                        <td><span style="background:#475569;padding:2px 6px;border-radius:4px;font-size:11px;color:white;">${m.size}</span></td>
+                        <td><span class="sku-badge">${exactSku}</span></td>
+                        <td>${m.qty} 件</td>
+                        <td style="color:#9ca3af; font-size:12px;">${String(m.date).split('T')[0]}</td>
+                        <td style="color:#e2e8f0; font-size:12px;">${m.note || '---'}</td>
+                        <td style="text-align:center;">
+                            <button class="btn-table-edit" onclick="clickEditRow('${m.mapId}')">⚙️ 調整</button>
+                        </td>
+                    </tr>`;
+                });
+                document.getElementById("mValue").innerText = `${totalQty} 件`;
+            }
+        }
+
+        function buildColorDropdown(colorString) {
+            let select = document.getElementById("popColor");
+            select.innerHTML = "";
+            if (!colorString) {
+                select.innerHTML = `<option value="單一規格">單一規格</option>`;
+                return;
+            }
+            let arr = colorString.split(",");
+            arr.forEach(c => {
+                let clean = c.trim();
+                if(clean) select.innerHTML += `<option value="${clean}">${clean}</option>`;
+            });
+        }
+
+        function clickSendBtn(eqId, event) {
+            event.stopPropagation(); 
+            if(!activeKOLId) {
+                alert("【請先選擇發放對象】\n請先在【左側欄】點選一位 KOL 名字（使其變成橘色高亮），再點擊發放按鈕！");
+                return;
+            }
+            modalMode = "ADD";
+            tempEqObj = equips.find(e => e.id === eqId);
+            let kolObj = kols.find(k => k.id === activeKOLId);
+
+            document.getElementById("modalHead").innerText = "新增裝備發放";
+            document.getElementById("btnConfirmSubmit").innerText = "確認發放";
+            document.getElementById("btnPopDelete").style.display = "none";
+
+            document.getElementById("popKOL").value = kolObj ? kolObj.name : '未知';
+            document.getElementById("popEQ").value = `${tempEqObj.name}`;
+            
+            buildColorDropdown(tempEqObj.colors);
+            
+            document.getElementById("popQty").value = 1;
+            document.getElementById("popNote").value = ""; 
+            document.getElementById("myModal").style.display = "flex";
+        }
+
+        function clickEditRow(mapId) {
+            modalMode = "EDIT";
+            editingMapId = mapId;
+            
+            let mapObj = mappings.find(m => m.mapId === mapId);
+            let kolObj = kols.find(k => k.id === mapObj.kolId);
+            tempEqObj = equips.find(e => e.id === mapObj.eqId);
+
+            document.getElementById("modalHead").innerText = "⚙️ 調整贊助裝備內容";
+            document.getElementById("btnConfirmSubmit").innerText = "儲存修改";
+            document.getElementById("btnPopDelete").style.display = "block";
+
+            document.getElementById("popKOL").value = kolObj ? kolObj.name : '未知';
+            document.getElementById("popEQ").value = tempEqObj.name;
+            
+            buildColorDropdown(tempEqObj.colors);
+            document.getElementById("popColor").value = mapObj.color;
+            document.getElementById("popSize").value = mapObj.size;
+            document.getElementById("popQty").value = mapObj.qty;
+            document.getElementById("popNote").value = mapObj.note || ""; 
+            document.getElementById("myModal").style.display = "flex";
+        }
+
+        function clickDeleteInsideModal() {
+            if(!editingMapId) return;
+            let check = confirm(`確定要撤回這筆記錄嗎？`);
+            if (check) { 
+                mappings = mappings.filter(m => m.mapId !== editingMapId); 
+                closePop(); 
+                refreshCenter(); 
+                saveToCloud();
+            }
+        }
+
+        function closePop() { document.getElementById("myModal").style.display = "none"; }
+
+        function confirmSend() {
+            let color = document.getElementById("popColor").value;
+            let size = document.getElementById("popSize").value;
+            let qty = parseInt(document.getElementById("popQty").value) || 1;
+            let note = document.getElementById("popNote").value.trim();
+            let today = new Date().toISOString().split('T')[0];
+
+            if (modalMode === "ADD") {
+                mappings.push({
+                    mapId: "M_" + Date.now(),
+                    kolId: activeKOLId,
+                    eqId: tempEqObj.id,
+                    color: color,
+                    size: size,
+                    qty: qty,
+                    date: today,
+                    note: note
+                });
+            } else if (modalMode === "EDIT") {
+                let targetRecord = mappings.find(m => m.mapId === editingMapId);
+                if (targetRecord) { targetRecord.color = color; targetRecord.size = size; targetRecord.qty = qty; targetRecord.note = note; }
+            }
+            closePop(); 
+            refreshCenter(); 
+            saveToCloud();
+        }
+    </script>
+</body>
+</html>
