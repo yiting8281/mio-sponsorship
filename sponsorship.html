@@ -27,7 +27,7 @@
         .scroll-area { flex: 1; overflow-y: auto; }
         .scroll-area::-webkit-scrollbar { display: none; }
         
-        .card { background-color: #1f2937; border: 1px solid #374151; border-radius: 8px; padding: 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; }
+        .card { background-color: #1f2937; border: 1px solid #374151; border-radius: 8px; padding: 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
         .card:hover { border-color: #4b5563; }
         .card.active-eq { border-color: #3b82f6; background-color: #1e3a8a; }
         .card-title { font-weight: bold; font-size: 15px; margin: 0; color: white; }
@@ -36,7 +36,6 @@
         .card-bottom { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #374151; padding-top: 8px; margin-top: 4px; }
         .card-id { font-size: 11px; color: #6b7280; }
         
-        /* 🌟 新增品牌標籤樣式 */
         .brand-badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: white; display: inline-block; }
         .brand-compressport { background-color: #ea580c; }
         .brand-shoes { background-color: #10b981; }
@@ -147,7 +146,6 @@
         </div>
 
         <div class="sidebar-right">
-            <!-- 🌟 升級版：支援搜尋品牌、品名、貨號 -->
             <div class="search-group">
                 <input type="text" id="equipSearch" oninput="filterEquips()" placeholder="🔍 搜尋品牌、品名、貨號..." class="search-input">
             </div>
@@ -157,7 +155,6 @@
         </div>
     </div>
 
-    <!-- 裝備發放彈窗 -->
     <div class="modal" id="myModal">
         <div class="modal-body">
             <h3 id="modalHead">新增裝備發放</h3>
@@ -204,7 +201,6 @@
         </div>
     </div>
 
-    <!-- KOL 修改彈窗 -->
     <div class="modal" id="kolModal">
         <div class="modal-body">
             <h3>⚙️ 編輯贊助人員資料</h3>
@@ -265,10 +261,10 @@
                 return res.json();
             })
             .then(cloudData => {
-                kols = cloudData.kols;
-                equips = cloudData.equips;
-                skuLookupTable = cloudData.skuLookupTable;
-                mappings = cloudData.mappings;
+                kols = cloudData.kols || [];
+                equips = cloudData.equips || [];
+                skuLookupTable = cloudData.skuLookupTable || {};
+                mappings = cloudData.mappings || [];
                 
                 refreshKOLList(kols);
                 refreshEquipGrid(equips);
@@ -292,7 +288,7 @@
             })
             .catch(err => {
                 console.error(err);
-                alert("連線失敗！通常是因為 Google 試算表後端程式碼執行出錯（報錯 500）。");
+                alert("連線失敗！通常是因為 Google 試算表後端程式碼執行出錯。");
             });
         }
 
@@ -317,17 +313,10 @@
             let cleanEqId = String(eqId).trim().toUpperCase();
             let cleanColor = String(color || '單一規格').trim().toUpperCase();
             let cleanSize = String(size || 'N/A').trim().toUpperCase();
-            
             let key = `${cleanEqId}_${cleanColor}_${cleanSize}`;
-            
-            if (skuLookupTable[key]) {
-                return skuLookupTable[key];
-            } else {
-                return `❌找不到:${key}`;
-            }
+            return skuLookupTable[key] || `❌找不到:${key}`;
         }
 
-        // 🌟 新增助理函數：判斷產品品牌並回傳對應的 CSS 類別與標籤文字
         function getBrandBadgeHtml(brandName) {
             let cleanBrand = String(brandName || '').trim();
             if (!cleanBrand) return `<span class="brand-badge brand-compressport">COMPRESSPORT</span>`;
@@ -335,7 +324,7 @@
             let lower = cleanBrand.toLowerCase();
             if (lower.includes('鞋') || lower.includes('shoe')) {
                 return `<span class="brand-badge brand-shoes">${cleanBrand}</span>`;
-            } else if (lower.includes('浮力') || lower.includes('衣') || lower.includes('wetsuit')) {
+            } else if (lower.includes('浮力') || lower.includes('衣') || lower.includes('褲') || lower.includes('suit')) {
                 return `<span class="brand-badge brand-wetsuit">${cleanBrand}</span>`;
             } else if (lower.includes('compressport')) {
                 return `<span class="brand-badge brand-compressport">COMPRESSPORT</span>`;
@@ -363,7 +352,7 @@
             let html = "";
             data.forEach(e => {
                 let cls = (activeEQId === e.id && currentMode === "EQ") ? "card active-eq" : "card";
-                let brandBadge = getBrandBadgeHtml(e.brand); // 🌟 讀取品牌標籤
+                let brandBadge = getBrandBadgeHtml(e.brand);
                 
                 html += `<div class="${cls}" onclick="selectEQ('${e.id}', event)">
                     <div class="card-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
@@ -389,7 +378,6 @@
 
         function filterEquips() {
             let query = document.getElementById("equipSearch").value.toLowerCase();
-            // 🌟 升級搜尋邏輯：連同品牌欄位一起搜尋
             let filtered = equips.filter(e => 
                 e.name.toLowerCase().includes(query) || 
                 e.model.toLowerCase().includes(query) ||
@@ -537,7 +525,6 @@
                 document.getElementById("listTitle").innerText = "持有贊助裝備明細";
                 document.getElementById("mValue").className = "price-val";
 
-                // 🌟 明細表格標頭加入「品牌」
                 thGroup.innerHTML = `<th>品牌</th><th>裝備品名</th><th>貨號</th><th>顏色</th><th>尺寸</th><th>單價</th><th>數量</th><th>總計</th><th>發放日期</th><th>📝 備註</th><th style="text-align:center;">⚙️ 管理</th>`;
 
                 let subtotal = 0;
@@ -549,7 +536,7 @@
                     let rowSum = price * m.qty;
                     subtotal += rowSum;
                     let exactSku = getExactSKU(m.eqId, m.color, m.size);
-                    let brandBadge = eq ? getBrandBadgeHtml(eq.brand) : '---'; // 🌟 讀取品牌
+                    let brandBadge = eq ? getBrandBadgeHtml(eq.brand) : '---';
 
                     tbody.innerHTML += `<tr>
                         <td>${brandBadge}</td>
@@ -638,7 +625,6 @@
             document.getElementById("btnPopDelete").style.display = "none";
 
             document.getElementById("popKOL").value = kolObj ? kolObj.name : '未知';
-            // 🌟 彈窗顯示加上品牌前綴
             let brandPrefix = tempEqObj.brand ? `[${tempEqObj.brand}] ` : '';
             document.getElementById("popEQ").value = `${brandPrefix}${tempEqObj.name}`;
             
