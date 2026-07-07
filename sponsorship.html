@@ -188,7 +188,7 @@
             </div>
             <div style="margin-bottom:12px;">
                 <label style="font-size:12px; color:#9ca3af;">📝 發放備註 (選填)</label>
-                <input type="text" id="popNote" placeholder="example：賽事贊助、拍攝使用..." style="margin-top:4px;">
+                <input type="text" id="popNote" placeholder="例如：賽事贊助、拍攝使用..." style="margin-top:4px;">
             </div>
             
             <div class="modal-footer">
@@ -270,7 +270,6 @@
                 const savedKOLId = localStorage.getItem("mio_activeKOLId");
                 const savedEQId = localStorage.getItem("mio_activeEQId");
 
-                // 🌟 強制字串化比對防錯
                 if (savedKOLId && kols.some(k => String(k.id).trim() === String(savedKOLId).trim())) {
                     activeKOLId = String(savedKOLId).trim();
                 }
@@ -280,7 +279,7 @@
                 currentMode = savedMode;
 
                 refreshKOLList(kols);
-                filterEquips(); // 預先渲染裝備清單
+                filterEquips(); 
                 
                 if (currentMode === "KOL" && activeKOLId) {
                     selectKOL(activeKOLId);
@@ -318,8 +317,9 @@
             });
         }
 
+        // 🌟 核心防錯升級：反查函數在組合 Key 之前，強制將裝備主編號（eqId）轉為大寫！
         function getExactSKU(eqId, color, size) {
-            let cleanEqId = String(eqId).trim().toUpperCase();
+            let cleanEqId = String(eqId || '').trim().toUpperCase();
             let cleanColor = String(color || '單一規格').trim().toUpperCase();
             let cleanSize = String(size || 'N/A').trim().toUpperCase();
             let key = `${cleanEqId}_${cleanColor}_${cleanSize}`;
@@ -361,7 +361,6 @@
         function refreshEquipGrid(data) {
             let html = "";
             data.forEach(e => {
-                // 🌟 核心防錯：強制轉字串、去空白、轉大寫比對！排除 JavaScript 弱型別判定錯誤
                 let isMatch = activeEQId && (String(activeEQId).trim().toUpperCase() === String(e.id).trim().toUpperCase());
                 let cls = (isMatch && currentMode === "EQ") ? "card active-eq" : "card";
                 let brandBadge = getBrandBadgeHtml(e.brand);
@@ -445,7 +444,7 @@
 
             refreshKOLList(kols);
             if(String(activeKOLId) === String(editingKOLId)) refreshCenter(); 
-            closeKolPop();
+            closePop();
 
             updateKOLToCloud("updateKOL", kolObj, "KOL資料已成功同步更新");
         }
@@ -539,6 +538,7 @@
                 let list = mappings.filter(m => String(m.kolId).trim() === String(activeKOLId).trim());
                 
                 list.forEach(m => {
+                    // 🌟 這裡也是關鍵防錯：在明細表裡尋找對應裝備時，強制把編號兩邊都轉大寫比對！
                     let eq = equips.find(e => String(e.id).trim().toUpperCase() === String(m.eqId).trim().toUpperCase());
                     let price = eq ? Number(eq.price) : 0;
                     let rowSum = price * m.qty;
