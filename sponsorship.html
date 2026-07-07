@@ -188,7 +188,7 @@
             </div>
             <div style="margin-bottom:12px;">
                 <label style="font-size:12px; color:#9ca3af;">📝 發放備註 (選填)</label>
-                <input type="text" id="popNote" placeholder="例如：賽事贊助、拍攝使用..." style="margin-top:4px;">
+                <input type="text" id="popNote" placeholder="example：賽事贊助、拍攝使用..." style="margin-top:4px;">
             </div>
             
             <div class="modal-footer">
@@ -270,14 +270,17 @@
                 const savedKOLId = localStorage.getItem("mio_activeKOLId");
                 const savedEQId = localStorage.getItem("mio_activeEQId");
 
-                if (savedKOLId && kols.some(k => k.id === savedKOLId)) activeKOLId = savedKOLId;
-                if (savedEQId && equips.some(e => e.id === savedEQId)) activeEQId = savedEQId;
+                // 🌟 強制字串化比對防錯
+                if (savedKOLId && kols.some(k => String(k.id).trim() === String(savedKOLId).trim())) {
+                    activeKOLId = String(savedKOLId).trim();
+                }
+                if (savedEQId && equips.some(e => String(e.id).trim().toUpperCase() === String(savedEQId).trim().toUpperCase())) {
+                    activeEQId = String(savedEQId).trim().toUpperCase();
+                }
                 currentMode = savedMode;
 
                 refreshKOLList(kols);
-                
-                // 🌟 初始化讀取完畢後，直接套用搜尋框的過濾渲染
-                filterEquips();
+                filterEquips(); // 預先渲染裝備清單
                 
                 if (currentMode === "KOL" && activeKOLId) {
                     selectKOL(activeKOLId);
@@ -330,7 +333,7 @@
             let lower = cleanBrand.toLowerCase();
             if (lower.includes('鞋') || lower.includes('shoe')) {
                 return `<span class="brand-badge brand-shoes">${cleanBrand}</span>`;
-            } else if (lower.includes('浮力') || lower.includes('衣') || lower.includes('褲') || lower.includes('suit') || lower.includes('blueseventy')) {
+            } else if (lower.includes('浮力') || lower.includes('衣') || lower.includes('褲') || lower.includes('suit') || lower.includes('blueseventy') || lower.includes('blue')) {
                 return `<span class="brand-badge brand-wetsuit">${cleanBrand}</span>`;
             } else if (lower.includes('compressport')) {
                 return `<span class="brand-badge brand-compressport">COMPRESSPORT</span>`;
@@ -342,11 +345,12 @@
         function refreshKOLList(data) {
             let html = "";
             data.forEach(k => {
-                let cls = (activeKOLId === k.id && currentMode === "KOL") ? "list-item active-kol" : "list-item";
+                let isMatch = activeKOLId && (String(activeKOLId).trim() === String(k.id).trim());
+                let cls = (isMatch && currentMode === "KOL") ? "list-item active-kol" : "list-item";
                 html += `<div class="${cls}" onclick="selectKOL('${k.id}')">
                     <span>${k.name}</span>
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <span class="badge" style="${activeKOLId === k.id && currentMode === "KOL" ? 'background:white;color:#f97316;' : ''}">${k.platform}</span>
+                        <span class="badge" style="${isMatch && currentMode === "KOL" ? 'background:white;color:#f97316;' : ''}">${k.platform}</span>
                         <button class="btn-kol-edit" onclick="clickEditKOL('${k.id}', event)">⚙️</button>
                     </div>
                 </div>`;
@@ -357,8 +361,9 @@
         function refreshEquipGrid(data) {
             let html = "";
             data.forEach(e => {
-                // 🌟 修改核心：只要 activeEQId 對了，而且目前正是裝備視角，它就一定要亮藍色！
-                let cls = (activeEQId === e.id && currentMode === "EQ") ? "card active-eq" : "card";
+                // 🌟 核心防錯：強制轉字串、去空白、轉大寫比對！排除 JavaScript 弱型別判定錯誤
+                let isMatch = activeEQId && (String(activeEQId).trim().toUpperCase() === String(e.id).trim().toUpperCase());
+                let cls = (isMatch && currentMode === "EQ") ? "card active-eq" : "card";
                 let brandBadge = getBrandBadgeHtml(e.brand);
                 
                 html += `<div class="${cls}" onclick="selectEQ('${e.id}', event)">
@@ -383,7 +388,6 @@
             refreshKOLList(filtered);
         }
 
-        // 🌟 升級過濾函數：每次打字都會完美保留並同步高亮渲染狀態
         function filterEquips() {
             let query = document.getElementById("equipSearch").value.toLowerCase();
             let filtered = equips.filter(e => 
@@ -415,7 +419,7 @@
         function clickEditKOL(id, event) {
             event.stopPropagation(); 
             editingKOLId = id;
-            let kolObj = kols.find(k => k.id === id);
+            let kolObj = kols.find(k => String(k.id) === String(id));
             if(!kolObj) return;
 
             document.getElementById("editKolName").value = kolObj.name;
@@ -432,7 +436,7 @@
             let link = document.getElementById("editKolLink").value.trim();
             if(!name) { alert("姓名不能為空！"); return; }
 
-            let kolObj = kols.find(k => k.id === editingKOLId);
+            let kolObj = kols.find(k => String(k.id) === String(editingKOLId));
             if (kolObj) {
                 kolObj.name = name;
                 kolObj.platform = platform;
@@ -440,23 +444,23 @@
             }
 
             refreshKOLList(kols);
-            if(activeKOLId === editingKOLId) refreshCenter(); 
+            if(String(activeKOLId) === String(editingKOLId)) refreshCenter(); 
             closeKolPop();
 
             updateKOLToCloud("updateKOL", kolObj, "KOL資料已成功同步更新");
         }
 
         function clickDeleteKOL() {
-            let kolObj = kols.find(k => k.id === editingKOLId);
+            let kolObj = kols.find(k => String(k.id) === String(editingKOLId));
             if(!kolObj) return;
 
             let check = confirm(`確定要永久刪除贊助人員「${kolObj.name}」嗎？\n⚠️ 注意：此操作亦會一併清空他在本系統中的裝備配發紀錄。`);
             if (!check) return;
 
-            kols = kols.filter(k => k.id !== editingKOLId);
-            mappings = mappings.filter(m => m.kolId !== editingKOLId); 
+            kols = kols.filter(k => String(k.id) !== String(editingKOLId));
+            mappings = mappings.filter(m => String(m.kolId) !== String(editingKOLId)); 
 
-            if (activeKOLId === editingKOLId) {
+            if (String(activeKOLId) === String(editingKOLId)) {
                 activeKOLId = null;
                 localStorage.removeItem("mio_activeKOLId");
                 document.getElementById("blankPage").style.display = "block";
@@ -487,26 +491,26 @@
         }
 
         function selectKOL(id) {
-            activeKOLId = id;
+            activeKOLId = String(id).trim();
             currentMode = "KOL";
             
             localStorage.setItem("mio_currentMode", currentMode);
-            localStorage.setItem("mio_activeKOLId", id);
+            localStorage.setItem("mio_activeKOLId", activeKOLId);
 
             refreshKOLList(kols); 
-            filterEquips(); // 🌟 同步調用篩選渲染，拿掉裝備藍框
+            filterEquips(); 
             refreshCenter();
         }
 
         function selectEQ(id, event) {
-            activeEQId = id;
+            activeEQId = String(id).trim().toUpperCase();
             currentMode = "EQ";
 
             localStorage.setItem("mio_currentMode", currentMode);
-            localStorage.setItem("mio_activeEQId", id);
+            localStorage.setItem("mio_activeEQId", activeEQId);
 
             refreshKOLList(kols); 
-            filterEquips(); // 🌟 核心修復：點擊時去重渲染當前被過濾的裝備列表，強制鎖死藍框！
+            filterEquips(); 
             refreshCenter();
         }
 
@@ -519,7 +523,7 @@
             tbody.innerHTML = "";
 
             if (currentMode === "KOL") {
-                let kol = kols.find(k => k.id === activeKOLId);
+                let kol = kols.find(k => String(k.id).trim() === String(activeKOLId).trim());
                 document.getElementById("viewTag").innerText = "KOL 視角";
                 document.getElementById("viewTag").style.background = "#ea580c";
                 document.getElementById("mTitle").innerText = kol ? kol.name : '未知';
@@ -532,10 +536,10 @@
                 thGroup.innerHTML = `<th>品牌</th><th>裝備品名</th><th>貨號</th><th>顏色</th><th>尺寸</th><th>單價</th><th>數量</th><th>總計</th><th>發放日期</th><th>📝 備註</th><th style="text-align:center;">⚙️ 管理</th>`;
 
                 let subtotal = 0;
-                let list = mappings.filter(m => m.kolId === activeKOLId);
+                let list = mappings.filter(m => String(m.kolId).trim() === String(activeKOLId).trim());
                 
                 list.forEach(m => {
-                    let eq = equips.find(e => e.id === m.eqId);
+                    let eq = equips.find(e => String(e.id).trim().toUpperCase() === String(m.eqId).trim().toUpperCase());
                     let price = eq ? Number(eq.price) : 0;
                     let rowSum = price * m.qty;
                     subtotal += rowSum;
@@ -561,7 +565,7 @@
                 document.getElementById("mValue").innerText = `NT$ ${subtotal.toLocaleString()}`;
             } 
             else if (currentMode === "EQ") {
-                let eq = equips.find(e => e.id === activeEQId);
+                let eq = equips.find(e => String(e.id).trim().toUpperCase() === String(activeEQId).trim().toUpperCase());
                 let brandText = eq && eq.brand ? `[${eq.brand}] ` : '';
                 
                 document.getElementById("viewTag").innerText = "裝備查詢";
@@ -575,10 +579,10 @@
                 thGroup.innerHTML = `<th>KOL 姓名</th><th>經營平台</th><th>配發顏色</th><th>領取尺寸</th><th>🆔 對應貨號</th><th>數量</th><th>發放日期</th><th>📝 備註</th><th style="text-align:center;">⚙️ 管理</th>`;
 
                 let totalQty = 0;
-                let list = mappings.filter(m => m.eqId === activeEQId);
+                let list = mappings.filter(m => String(m.eqId).trim().toUpperCase() === String(activeEQId).trim().toUpperCase());
 
                 list.forEach(m => {
-                    let kol = kols.find(k => k.id === m.kolId);
+                    let kol = kols.find(k => String(k.id).trim() === String(m.kolId).trim());
                     totalQty += m.qty;
                     let exactSku = getExactSKU(m.eqId, m.color, m.size);
 
@@ -621,8 +625,8 @@
                 return;
             }
             modalMode = "ADD";
-            tempEqObj = equips.find(e => e.id === eqId);
-            let kolObj = kols.find(k => k.id === activeKOLId);
+            tempEqObj = equips.find(e => String(e.id).trim().toUpperCase() === String(eqId).trim().toUpperCase());
+            let kolObj = kols.find(k => String(k.id).trim() === String(activeKOLId).trim());
 
             document.getElementById("modalHead").innerText = "新增裝備發放";
             document.getElementById("btnConfirmSubmit").innerText = "確認發放";
@@ -643,9 +647,9 @@
             modalMode = "EDIT";
             editingMapId = mapId;
             
-            let mapObj = mappings.find(m => m.mapId === mapId);
-            let kolObj = kols.find(k => k.id === mapObj.kolId);
-            tempEqObj = equips.find(e => e.id === mapObj.eqId);
+            let mapObj = mappings.find(m => String(m.mapId) === String(mapId));
+            let kolObj = kols.find(k => String(k.id).trim() === String(mapObj.kolId).trim());
+            tempEqObj = equips.find(e => String(e.id).trim().toUpperCase() === String(mapObj.eqId).trim().toUpperCase());
 
             document.getElementById("modalHead").innerText = "⚙️ 調整贊助裝備內容";
             document.getElementById("btnConfirmSubmit").innerText = "儲存修改";
@@ -667,7 +671,7 @@
             if(!editingMapId) return;
             let check = confirm(`確定要撤回這筆記錄嗎？`);
             if (check) { 
-                mappings = mappings.filter(m => m.mapId !== editingMapId); 
+                mappings = mappings.filter(m => String(m.mapId) !== String(editingMapId)); 
                 closePop(); 
                 refreshCenter(); 
                 saveToCloud();
@@ -695,7 +699,7 @@
                     note: note
                 });
             } else if (modalMode === "EDIT") {
-                let targetRecord = mappings.find(m => m.mapId === editingMapId);
+                let targetRecord = mappings.find(m => String(m.mapId) === String(editingMapId));
                 if (targetRecord) { targetRecord.color = color; targetRecord.size = size; targetRecord.qty = qty; targetRecord.note = note; }
             }
             closePop(); 
