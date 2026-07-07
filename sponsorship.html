@@ -275,12 +275,14 @@
                 currentMode = savedMode;
 
                 refreshKOLList(kols);
-                refreshEquipGrid(equips);
+                
+                // 🌟 初始化讀取完畢後，直接套用搜尋框的過濾渲染
+                filterEquips();
                 
                 if (currentMode === "KOL" && activeKOLId) {
                     selectKOL(activeKOLId);
                 } else if (currentMode === "EQ" && activeEQId) {
-                    selectEQ(savedEQId); 
+                    selectEQ(activeEQId); 
                 } else {
                     document.getElementById("blankPage").style.display = "block";
                     document.getElementById("mainPage").style.display = "none";
@@ -340,7 +342,6 @@
         function refreshKOLList(data) {
             let html = "";
             data.forEach(k => {
-                // 🌟 只在真正為 KOL 模式時才亮起橘色
                 let cls = (activeKOLId === k.id && currentMode === "KOL") ? "list-item active-kol" : "list-item";
                 html += `<div class="${cls}" onclick="selectKOL('${k.id}')">
                     <span>${k.name}</span>
@@ -356,7 +357,7 @@
         function refreshEquipGrid(data) {
             let html = "";
             data.forEach(e => {
-                // 🌟 只在真正為 EQ 模式時才亮起藍色
+                // 🌟 修改核心：只要 activeEQId 對了，而且目前正是裝備視角，它就一定要亮藍色！
                 let cls = (activeEQId === e.id && currentMode === "EQ") ? "card active-eq" : "card";
                 let brandBadge = getBrandBadgeHtml(e.brand);
                 
@@ -382,6 +383,7 @@
             refreshKOLList(filtered);
         }
 
+        // 🌟 升級過濾函數：每次打字都會完美保留並同步高亮渲染狀態
         function filterEquips() {
             let query = document.getElementById("equipSearch").value.toLowerCase();
             let filtered = equips.filter(e => 
@@ -484,7 +486,6 @@
             });
         }
 
-        // 🌟 點擊左側：開啟 KOL 模式，右側裝備高亮完全拿掉
         function selectKOL(id) {
             activeKOLId = id;
             currentMode = "KOL";
@@ -493,11 +494,10 @@
             localStorage.setItem("mio_activeKOLId", id);
 
             refreshKOLList(kols); 
-            refreshEquipGrid(equips); 
+            filterEquips(); // 🌟 同步調用篩選渲染，拿掉裝備藍框
             refreshCenter();
         }
 
-        // 🌟 點擊右側：開啟 裝備 模式，左側人名高亮完全拿掉
         function selectEQ(id, event) {
             activeEQId = id;
             currentMode = "EQ";
@@ -506,7 +506,7 @@
             localStorage.setItem("mio_activeEQId", id);
 
             refreshKOLList(kols); 
-            refreshEquipGrid(equips); 
+            filterEquips(); // 🌟 核心修復：點擊時去重渲染當前被過濾的裝備列表，強制鎖死藍框！
             refreshCenter();
         }
 
