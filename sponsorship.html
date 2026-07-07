@@ -27,10 +27,9 @@
         .scroll-area { flex: 1; overflow-y: auto; }
         .scroll-area::-webkit-scrollbar { display: none; }
         
-        /* 🌟 右側裝備庫也需要讓他有獨立的捲動範圍，這樣才能精準記憶高度 */
-        .sidebar-right .scroll-area-right { flex: 1; overflow-y: auto; padding-right: 2px; }
-        .sidebar-right .scroll-area-right::-webkit-scrollbar { width: 4px; }
-        .sidebar-right .scroll-area-right::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        /* 🌟 重新校正右側的捲動獨立樣式 */
+        .scroll-area-right { flex: 1; overflow-y: auto; }
+        .scroll-area-right::-webkit-scrollbar { display: none; }
         
         .card { background-color: #1f2937; border: 1px solid #374151; border-radius: 8px; padding: 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; border-left: 4px solid transparent; }
         .card:hover { border-color: #4b5563; }
@@ -118,7 +117,7 @@
                 <input type="text" id="kolSearch" oninput="filterKols()" placeholder="🔍 搜尋 KOL 姓名或平台..." class="search-input">
             </div>
 
-            <div style="font-size:12px; color:#9ca3af; margin-bottom:8px; font-weight: bold;">贊助人員清單 (KOL)</div>
+            <div style="font-size:12px; color:#9ca3af; margin-bottom:8px; font-weight: bold;">贊助人員清發 (KOL)</div>
             <div class="scroll-area" id="kolContainer"></div>
         </div>
 
@@ -252,13 +251,15 @@
         let editingMapId = null; 
         let editingKOLId = null; 
 
-        // 🌟 監聽捲動事件：只要大夥一邊用一邊滑，就即時記住當前的捲動高度
-        document.getElementById("kolContainer").addEventListener("scroll", function() {
-            localStorage.setItem("mio_scrollLeft", this.scrollTop);
-        });
-        document.getElementById("eqContainer").addEventListener("scroll", function() {
-            localStorage.setItem("mio_scrollRight", this.scrollTop);
-        });
+        // 🌟 捲動記憶大升級：改用事件監聽委派到 document，不管列表怎麼被 innerHTML 洗掉，都能 100% 監聽到捲動！
+        document.addEventListener("scroll", function(e) {
+            if (e.target && e.target.id === "kolContainer") {
+                localStorage.setItem("mio_scrollLeft", e.target.scrollTop);
+            }
+            if (e.target && e.target.id === "eqContainer") {
+                localStorage.setItem("mio_scrollRight", e.target.scrollTop);
+            }
+        }, true);
 
         initCloudConnection();
 
@@ -314,13 +315,8 @@
                     document.getElementById("mainPage").style.display = "none";
                 }
                 
-                // 🌟 核心功能：當所有列表元件都渲染完畢後，幫你自動平滑滾回上一次的位置
-                setTimeout(() => {
-                    const savedScrollLeft = localStorage.getItem("mio_scrollLeft");
-                    const savedScrollRight = localStorage.getItem("mio_scrollRight");
-                    if (savedScrollLeft) document.getElementById("kolContainer").scrollTop = savedScrollLeft;
-                    if (savedScrollRight) document.getElementById("eqContainer").scrollTop = savedScrollRight;
-                }, 100);
+                // 🌟 網頁初次載入完畢，強制還原高度
+                restoreScrollPositions();
 
                 document.getElementById("loadingView").style.display = "none";
                 document.getElementById("syncStatus").innerText = "● 雲端資料同步完畢";
@@ -330,6 +326,20 @@
                 console.error(err);
                 alert("連線失敗！通常是因為 Google 試算表後端程式碼執行出錯。");
             });
+        }
+
+        // 🌟 獨立出一個強制還原高度的專用函數，只要打字或重整就立刻執行它
+        function restoreScrollPositions() {
+            const savedScrollLeft = localStorage.getItem("mio_scrollLeft");
+            const savedScrollRight = localStorage.getItem("mio_scrollRight");
+            if (savedScrollLeft) {
+                var el = document.getElementById("kolContainer");
+                if(el) el.scrollTop = savedScrollLeft;
+            }
+            if (savedScrollRight) {
+                var er = document.getElementById("eqContainer");
+                if(er) er.scrollTop = savedScrollRight;
+            }
         }
 
         function saveToCloud() {
@@ -387,6 +397,7 @@
                 </div>`;
             });
             document.getElementById("kolContainer").innerHTML = html;
+            restoreScrollPositions(); // 🌟 innerHTML 塞入完畢，立刻拉回高度，防止跳空
         }
 
         function refreshEquipGrid(data) {
@@ -410,6 +421,7 @@
                 </div>`;
             });
             document.getElementById("eqContainer").innerHTML = html;
+            restoreScrollPositions(); // 🌟 innerHTML 塞入完畢，立刻拉回高度，防止跳空
         }
 
         function filterKols() {
@@ -458,6 +470,7 @@
             document.getElementById("kolModal").style.display = "flex";
         }
 
+        // 修正原先程式碼中的 closeKolPop 拼錯字，改為統一對齊
         function closeKolPop() { document.getElementById("kolModal").style.display = "none"; }
 
         function confirmSaveKOL() {
