@@ -36,6 +36,13 @@
         .card-bottom { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #374151; padding-top: 8px; margin-top: 4px; }
         .card-id { font-size: 11px; color: #6b7280; }
         
+        /* 🌟 新增品牌標籤樣式 */
+        .brand-badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: white; display: inline-block; }
+        .brand-compressport { background-color: #ea580c; }
+        .brand-shoes { background-color: #10b981; }
+        .brand-wetsuit { background-color: #3b82f6; }
+        .brand-unknown { background-color: #6b7280; }
+
         .summary-banner { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         .banner-title { font-size: 22px; font-weight: bold; margin: 0; }
         .banner-sub { font-size: 13px; color: #9ca3af; margin: 5px 0 0 0; }
@@ -140,8 +147,9 @@
         </div>
 
         <div class="sidebar-right">
+            <!-- 🌟 升級版：支援搜尋品牌、品名、貨號 -->
             <div class="search-group">
-                <input type="text" id="equipSearch" oninput="filterEquips()" placeholder="🔍 搜尋品名、貨號..." class="search-input">
+                <input type="text" id="equipSearch" oninput="filterEquips()" placeholder="🔍 搜尋品牌、品名、貨號..." class="search-input">
             </div>
 
             <div style="font-size:12px; color:#9ca3af; margin-bottom:12px; font-weight: bold;">裝備庫 (點選卡牌可反查)</div>
@@ -149,6 +157,7 @@
         </div>
     </div>
 
+    <!-- 裝備發放彈窗 -->
     <div class="modal" id="myModal">
         <div class="modal-body">
             <h3 id="modalHead">新增裝備發放</h3>
@@ -195,6 +204,7 @@
         </div>
     </div>
 
+    <!-- KOL 修改彈窗 -->
     <div class="modal" id="kolModal">
         <div class="modal-body">
             <h3>⚙️ 編輯贊助人員資料</h3>
@@ -263,7 +273,6 @@
                 refreshKOLList(kols);
                 refreshEquipGrid(equips);
                 
-                // 🌟 從 localStorage 回復上一次看的頁面狀態
                 const savedMode = localStorage.getItem("mio_currentMode");
                 const savedKOLId = localStorage.getItem("mio_activeKOLId");
                 const savedEQId = localStorage.getItem("mio_activeEQId");
@@ -273,7 +282,6 @@
                 } else if (savedMode === "EQ" && savedEQId && equips.some(e => e.id === savedEQId)) {
                     selectEQ(savedEQId);
                 } else {
-                    // 如果沒有紀錄，或資料庫找不到該人員/裝備，維持空白頁
                     document.getElementById("blankPage").style.display = "block";
                     document.getElementById("mainPage").style.display = "none";
                 }
@@ -319,6 +327,23 @@
             }
         }
 
+        // 🌟 新增助理函數：判斷產品品牌並回傳對應的 CSS 類別與標籤文字
+        function getBrandBadgeHtml(brandName) {
+            let cleanBrand = String(brandName || '').trim();
+            if (!cleanBrand) return `<span class="brand-badge brand-compressport">COMPRESSPORT</span>`;
+            
+            let lower = cleanBrand.toLowerCase();
+            if (lower.includes('鞋') || lower.includes('shoe')) {
+                return `<span class="brand-badge brand-shoes">${cleanBrand}</span>`;
+            } else if (lower.includes('浮力') || lower.includes('衣') || lower.includes('wetsuit')) {
+                return `<span class="brand-badge brand-wetsuit">${cleanBrand}</span>`;
+            } else if (lower.includes('compressport')) {
+                return `<span class="brand-badge brand-compressport">COMPRESSPORT</span>`;
+            } else {
+                return `<span class="brand-badge brand-unknown">${cleanBrand}</span>`;
+            }
+        }
+
         function refreshKOLList(data) {
             let html = "";
             data.forEach(k => {
@@ -338,9 +363,12 @@
             let html = "";
             data.forEach(e => {
                 let cls = (activeEQId === e.id && currentMode === "EQ") ? "card active-eq" : "card";
+                let brandBadge = getBrandBadgeHtml(e.brand); // 🌟 讀取品牌標籤
+                
                 html += `<div class="${cls}" onclick="selectEQ('${e.id}', event)">
-                    <div class="card-header">
-                        <p class="card-title">${e.name}</p>
+                    <div class="card-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                        <p class="card-title" style="flex:1;">${e.name}</p>
+                        ${brandBadge}
                     </div>
                     <p class="card-sub">主編號: ${e.id} | 型號: ${e.model}</p>
                     <p class="card-price">NT$ ${Number(e.price).toLocaleString()}</p>
@@ -361,7 +389,12 @@
 
         function filterEquips() {
             let query = document.getElementById("equipSearch").value.toLowerCase();
-            let filtered = equips.filter(e => e.name.toLowerCase().includes(query) || e.model.toLowerCase().includes(query));
+            // 🌟 升級搜尋邏輯：連同品牌欄位一起搜尋
+            let filtered = equips.filter(e => 
+                e.name.toLowerCase().includes(query) || 
+                e.model.toLowerCase().includes(query) ||
+                (e.brand && e.brand.toLowerCase().includes(query))
+            );
             refreshEquipGrid(filtered);
         }
 
@@ -429,7 +462,6 @@
 
             if (activeKOLId === editingKOLId) {
                 activeKOLId = null;
-                // 清除暫存
                 localStorage.removeItem("mio_activeKOLId");
                 document.getElementById("blankPage").style.display = "block";
                 document.getElementById("mainPage").style.display = "none";
@@ -463,13 +495,12 @@
             currentMode = "KOL";
             activeEQId = null; 
             
-            // 🌟 記錄目前選取的 KOL 狀態到快取
             localStorage.setItem("mio_currentMode", currentMode);
             localStorage.setItem("mio_activeKOLId", id);
             localStorage.removeItem("mio_activeEQId");
 
             refreshKOLList(kols); 
-            refreshEquipGrid(equips); // 確保右側裝備的高亮被清除
+            refreshEquipGrid(equips); 
             refreshCenter();
         }
 
@@ -478,12 +509,11 @@
             currentMode = "EQ";
             activeKOLId = null;
 
-            // 🌟 記錄目前選取的裝備狀態到快取
             localStorage.setItem("mio_currentMode", currentMode);
             localStorage.setItem("mio_activeEQId", id);
             localStorage.removeItem("mio_activeKOLId");
 
-            refreshKOLList(kols); // 確保左側 KOL 的高亮被清除
+            refreshKOLList(kols); 
             refreshEquipGrid(equips); 
             refreshCenter();
         }
@@ -507,7 +537,8 @@
                 document.getElementById("listTitle").innerText = "持有贊助裝備明細";
                 document.getElementById("mValue").className = "price-val";
 
-                thGroup.innerHTML = `<th>裝備品名</th><th>貨號</th><th>顏色</th><th>尺寸</th><th>單價</th><th>數量</th><th>總計</th><th>發放日期</th><th>📝 備註</th><th style="text-align:center;">⚙️ 管理</th>`;
+                // 🌟 明細表格標頭加入「品牌」
+                thGroup.innerHTML = `<th>品牌</th><th>裝備品名</th><th>貨號</th><th>顏色</th><th>尺寸</th><th>單價</th><th>數量</th><th>總計</th><th>發放日期</th><th>📝 備註</th><th style="text-align:center;">⚙️ 管理</th>`;
 
                 let subtotal = 0;
                 let list = mappings.filter(m => m.kolId === activeKOLId);
@@ -518,8 +549,10 @@
                     let rowSum = price * m.qty;
                     subtotal += rowSum;
                     let exactSku = getExactSKU(m.eqId, m.color, m.size);
+                    let brandBadge = eq ? getBrandBadgeHtml(eq.brand) : '---'; // 🌟 讀取品牌
 
                     tbody.innerHTML += `<tr>
+                        <td>${brandBadge}</td>
                         <td style="font-weight:bold; color:white;">${eq ? eq.name : '未知'}</td>
                         <td><span class="sku-badge">${exactSku}</span></td>
                         <td><span style="background:#1e293b; border:1px solid #475569; padding:2px 6px; border-radius:4px; font-size:12px; color:#cbd5e1;">${m.color || '未指定'}</span></td>
@@ -538,9 +571,11 @@
             } 
             else if (currentMode === "EQ") {
                 let eq = equips.find(e => e.id === activeEQId);
+                let brandText = eq && eq.brand ? `[${eq.brand}] ` : '';
+                
                 document.getElementById("viewTag").innerText = "裝備查詢";
                 document.getElementById("viewTag").style.background = "#2563eb";
-                document.getElementById("mTitle").innerText = eq ? eq.name : '未知';
+                document.getElementById("mTitle").innerText = eq ? brandText + eq.name : '未知';
                 document.getElementById("mSub").innerText = `貨號: ${eq ? eq.model : '---'} | 單價: NT$ ${eq ? Number(eq.price).toLocaleString() : 0}`;
                 document.getElementById("mLabel").innerText = "此單品已發放總件數";
                 document.getElementById("listTitle").innerText = "領取此裝備的 KOL 人員名單";
@@ -603,7 +638,9 @@
             document.getElementById("btnPopDelete").style.display = "none";
 
             document.getElementById("popKOL").value = kolObj ? kolObj.name : '未知';
-            document.getElementById("popEQ").value = `${tempEqObj.name}`;
+            // 🌟 彈窗顯示加上品牌前綴
+            let brandPrefix = tempEqObj.brand ? `[${tempEqObj.brand}] ` : '';
+            document.getElementById("popEQ").value = `${brandPrefix}${tempEqObj.name}`;
             
             buildColorDropdown(tempEqObj.colors);
             
@@ -625,7 +662,8 @@
             document.getElementById("btnPopDelete").style.display = "block";
 
             document.getElementById("popKOL").value = kolObj ? kolObj.name : '未知';
-            document.getElementById("popEQ").value = tempEqObj.name;
+            let brandPrefix = tempEqObj.brand ? `[${tempEqObj.brand}] ` : '';
+            document.getElementById("popEQ").value = brandPrefix + tempEqObj.name;
             
             buildColorDropdown(tempEqObj.colors);
             document.getElementById("popColor").value = mapObj.color;
