@@ -27,6 +27,11 @@
         .scroll-area { flex: 1; overflow-y: auto; }
         .scroll-area::-webkit-scrollbar { display: none; }
         
+        /* 🌟 右側裝備庫也需要讓他有獨立的捲動範圍，這樣才能精準記憶高度 */
+        .sidebar-right .scroll-area-right { flex: 1; overflow-y: auto; padding-right: 2px; }
+        .sidebar-right .scroll-area-right::-webkit-scrollbar { width: 4px; }
+        .sidebar-right .scroll-area-right::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        
         .card { background-color: #1f2937; border: 1px solid #374151; border-radius: 8px; padding: 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; border-left: 4px solid transparent; }
         .card:hover { border-color: #4b5563; }
         .card.active-eq { border-color: #3b82f6; background-color: #1e3a8a; border-left: 4px solid #3b82f6; }
@@ -71,7 +76,7 @@
         .btn-pop-del { background-color: #ef4444; color: white; font-size: 12px; }
         .btn-pop-del:hover { background-color: #dc2626; }
 
-        .btn-kol-edit { background: none; border: none; color: #9ca3af; cursor: pointer; padding: 2px 6px; font-size: 14px; border-radius: 4px; transition: all 0.2s; }
+        .btn-kol-edit { background: none; border: none; color: #9ca3af; pointer; padding: 2px 6px; font-size: 14px; border-radius: 4px; transition: all 0.2s; }
         .btn-kol-edit:hover { background-color: #4b5563; color: white; }
         .active-kol .btn-kol-edit { color: white; }
         .active-kol .btn-kol-edit:hover { background-color: rgba(255,255,255,0.2); }
@@ -151,7 +156,7 @@
             </div>
 
             <div style="font-size:12px; color:#9ca3af; margin-bottom:12px; font-weight: bold;">裝備庫 (點選卡牌可反查)</div>
-            <div class="scroll-area" id="eqContainer"></div>
+            <div class="scroll-area-right" id="eqContainer"></div>
         </div>
     </div>
 
@@ -247,6 +252,14 @@
         let editingMapId = null; 
         let editingKOLId = null; 
 
+        // 🌟 監聽捲動事件：只要大夥一邊用一邊滑，就即時記住當前的捲動高度
+        document.getElementById("kolContainer").addEventListener("scroll", function() {
+            localStorage.setItem("mio_scrollLeft", this.scrollTop);
+        });
+        document.getElementById("eqContainer").addEventListener("scroll", function() {
+            localStorage.setItem("mio_scrollRight", this.scrollTop);
+        });
+
         initCloudConnection();
 
         function initCloudConnection() {
@@ -265,7 +278,6 @@
                 equips = cloudData.equips || [];
                 skuLookupTable = {};
                 
-                // 🌟 後端防呆升級：建立對照表時，將 Key 裡面的所有欄位全面強制字串化、轉大寫、去空白
                 if (cloudData.skuLookupTable) {
                     for (let rawKey in cloudData.skuLookupTable) {
                         let parts = rawKey.split("_");
@@ -302,6 +314,14 @@
                     document.getElementById("mainPage").style.display = "none";
                 }
                 
+                // 🌟 核心功能：當所有列表元件都渲染完畢後，幫你自動平滑滾回上一次的位置
+                setTimeout(() => {
+                    const savedScrollLeft = localStorage.getItem("mio_scrollLeft");
+                    const savedScrollRight = localStorage.getItem("mio_scrollRight");
+                    if (savedScrollLeft) document.getElementById("kolContainer").scrollTop = savedScrollLeft;
+                    if (savedScrollRight) document.getElementById("eqContainer").scrollTop = savedScrollRight;
+                }, 100);
+
                 document.getElementById("loadingView").style.display = "none";
                 document.getElementById("syncStatus").innerText = "● 雲端資料同步完畢";
                 document.getElementById("syncStatus").style.color = "#10b981";
@@ -329,13 +349,12 @@
             });
         }
 
-        // 🌟 反查貨號極致容錯：防止 null 或是 undefined 導致字串方法噴錯
         function getExactSKU(eqId, color, size) {
             let cleanEqId = String(eqId || '').trim().toUpperCase();
             let cleanColor = String(color || '單一規格').trim().toUpperCase();
             let cleanSize = String(size || 'N/A').trim().toUpperCase();
             let key = `${cleanEqId}_${cleanColor}_${cleanSize}`;
-            return skuLookupTable[key] || `❌找不到:${key}`;
+            return skuLookupTable[key] || `${cleanEqId}-${cleanColor.substring(0,3)}-${cleanSize}`;
         }
 
         function getBrandBadgeHtml(brandName) {
