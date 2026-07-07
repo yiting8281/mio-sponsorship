@@ -27,9 +27,9 @@
         .scroll-area { flex: 1; overflow-y: auto; }
         .scroll-area::-webkit-scrollbar { display: none; }
         
-        .card { background-color: #1f2937; border: 1px solid #374151; border-radius: 8px; padding: 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
+        .card { background-color: #1f2937; border: 1px solid #374151; border-radius: 8px; padding: 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; border-left: 4px solid transparent; }
         .card:hover { border-color: #4b5563; }
-        .card.active-eq { border-color: #3b82f6; background-color: #1e3a8a; }
+        .card.active-eq { border-color: #3b82f6; background-color: #1e3a8a; border-left: 4px solid #3b82f6; }
         .card-title { font-weight: bold; font-size: 15px; margin: 0; color: white; }
         .card-sub { font-size: 12px; color: #9ca3af; margin: 0; }
         .card-price { font-size: 14px; color: #f97316; font-weight: bold; margin: 4px 0 0 0; }
@@ -266,17 +266,26 @@
                 skuLookupTable = cloudData.skuLookupTable || {};
                 mappings = cloudData.mappings || [];
                 
-                refreshKOLList(kols);
-                refreshEquipGrid(equips);
-                
-                const savedMode = localStorage.getItem("mio_currentMode");
+                // 🌟 快取狀態完全讀取與恢復
+                const savedMode = localStorage.getItem("mio_currentMode") || "KOL";
                 const savedKOLId = localStorage.getItem("mio_activeKOLId");
                 const savedEQId = localStorage.getItem("mio_activeEQId");
 
-                if (savedMode === "KOL" && savedKOLId && kols.some(k => k.id === savedKOLId)) {
-                    selectKOL(savedKOLId);
-                } else if (savedMode === "EQ" && savedEQId && equips.some(e => e.id === savedEQId)) {
-                    selectEQ(savedEQId);
+                if (savedKOLId && kols.some(k => k.id === savedKOLId)) {
+                    activeKOLId = savedKOLId;
+                }
+                if (savedEQId && equips.some(e => e.id === savedEQId)) {
+                    activeEQId = savedEQId;
+                }
+                currentMode = savedMode;
+
+                refreshKOLList(kols);
+                refreshEquipGrid(equips);
+                
+                if (currentMode === "KOL" && activeKOLId) {
+                    selectKOL(activeKOLId);
+                } else if (currentMode === "EQ" && activeEQId) {
+                    selectEQ(activeEQId);
                 } else {
                     document.getElementById("blankPage").style.display = "block";
                     document.getElementById("mainPage").style.display = "none";
@@ -324,7 +333,7 @@
             let lower = cleanBrand.toLowerCase();
             if (lower.includes('鞋') || lower.includes('shoe')) {
                 return `<span class="brand-badge brand-shoes">${cleanBrand}</span>`;
-            } else if (lower.includes('浮力') || lower.includes('衣') || lower.includes('褲') || lower.includes('suit')) {
+            } else if (lower.includes('浮力') || lower.includes('衣') || lower.includes('褲') || lower.includes('suit') || lower.includes('blueseventy')) {
                 return `<span class="brand-badge brand-wetsuit">${cleanBrand}</span>`;
             } else if (lower.includes('compressport')) {
                 return `<span class="brand-badge brand-compressport">COMPRESSPORT</span>`;
@@ -336,11 +345,12 @@
         function refreshKOLList(data) {
             let html = "";
             data.forEach(k => {
-                let cls = (activeKOLId === k.id && currentMode === "KOL") ? "list-item active-kol" : "list-item";
+                // 🌟 保留左邊人員的高亮渲染條件
+                let cls = (activeKOLId === k.id) ? "list-item active-kol" : "list-item";
                 html += `<div class="${cls}" onclick="selectKOL('${k.id}')">
                     <span>${k.name}</span>
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <span class="badge" style="${activeKOLId === k.id && currentMode === 'KOL' ? 'background:white;color:#f97316;' : ''}">${k.platform}</span>
+                        <span class="badge" style="${activeKOLId === k.id ? 'background:white;color:#f97316;' : ''}">${k.platform}</span>
                         <button class="btn-kol-edit" onclick="clickEditKOL('${k.id}', event)">⚙️</button>
                     </div>
                 </div>`;
@@ -351,7 +361,8 @@
         function refreshEquipGrid(data) {
             let html = "";
             data.forEach(e => {
-                let cls = (activeEQId === e.id && currentMode === "EQ") ? "card active-eq" : "card";
+                // 🌟 修復核心：只要 activeEQId 吻合，就必須亮藍色邊框，不受外部 currentMode 干擾
+                let cls = (activeEQId === e.id) ? "card active-eq" : "card";
                 let brandBadge = getBrandBadgeHtml(e.brand);
                 
                 html += `<div class="${cls}" onclick="selectEQ('${e.id}', event)">
@@ -481,11 +492,9 @@
         function selectKOL(id) {
             activeKOLId = id;
             currentMode = "KOL";
-            activeEQId = null; 
             
             localStorage.setItem("mio_currentMode", currentMode);
             localStorage.setItem("mio_activeKOLId", id);
-            localStorage.removeItem("mio_activeEQId");
 
             refreshKOLList(kols); 
             refreshEquipGrid(equips); 
@@ -495,14 +504,12 @@
         function selectEQ(id, event) {
             activeEQId = id;
             currentMode = "EQ";
-            activeKOLId = null;
 
             localStorage.setItem("mio_currentMode", currentMode);
             localStorage.setItem("mio_activeEQId", id);
-            localStorage.removeItem("mio_activeKOLId");
 
             refreshKOLList(kols); 
-            refreshEquipGrid(equips); 
+            refreshEquipGrid(equips); // 🌟 重新整理裝備庫列表，鎖死藍色高亮！
             refreshCenter();
         }
 
