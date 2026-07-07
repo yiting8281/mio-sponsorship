@@ -263,7 +263,19 @@
             .then(cloudData => {
                 kols = cloudData.kols || [];
                 equips = cloudData.equips || [];
-                skuLookupTable = cloudData.skuLookupTable || {};
+                skuLookupTable = {};
+                
+                // 🌟 後端防呆升級：建立對照表時，將 Key 裡面的所有欄位全面強制字串化、轉大寫、去空白
+                if (cloudData.skuLookupTable) {
+                    for (let rawKey in cloudData.skuLookupTable) {
+                        let parts = rawKey.split("_");
+                        if (parts.length >= 3) {
+                            let cleanKey = `${parts[0].trim().toUpperCase()}_${parts[1].trim().toUpperCase()}_${parts[2].trim().toUpperCase()}`;
+                            skuLookupTable[cleanKey] = cloudData.skuLookupTable[rawKey];
+                        }
+                    }
+                }
+                
                 mappings = cloudData.mappings || [];
                 
                 const savedMode = localStorage.getItem("mio_currentMode") || "KOL";
@@ -317,7 +329,7 @@
             });
         }
 
-        // 🌟 核心防錯升級：反查函數在組合 Key 之前，強制將裝備主編號（eqId）轉為大寫！
+        // 🌟 反查貨號極致容錯：防止 null 或是 undefined 導致字串方法噴錯
         function getExactSKU(eqId, color, size) {
             let cleanEqId = String(eqId || '').trim().toUpperCase();
             let cleanColor = String(color || '單一規格').trim().toUpperCase();
@@ -444,7 +456,7 @@
 
             refreshKOLList(kols);
             if(String(activeKOLId) === String(editingKOLId)) refreshCenter(); 
-            closePop();
+            closeKolPop();
 
             updateKOLToCloud("updateKOL", kolObj, "KOL資料已成功同步更新");
         }
@@ -538,7 +550,6 @@
                 let list = mappings.filter(m => String(m.kolId).trim() === String(activeKOLId).trim());
                 
                 list.forEach(m => {
-                    // 🌟 這裡也是關鍵防錯：在明細表裡尋找對應裝備時，強制把編號兩邊都轉大寫比對！
                     let eq = equips.find(e => String(e.id).trim().toUpperCase() === String(m.eqId).trim().toUpperCase());
                     let price = eq ? Number(eq.price) : 0;
                     let rowSum = price * m.qty;
