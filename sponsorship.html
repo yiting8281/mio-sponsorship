@@ -367,21 +367,35 @@
             return skuLookupTable[key] || `${cleanEqId}-${cleanColor.substring(0,3)}-${cleanSize}`;
         }
 
-        function getBrandBadgeHtml(brandName) {
-            let cleanBrand = String(brandName || '').trim();
-            if (!cleanBrand) return `<span class="brand-badge brand-compressport">COMPRESSPORT</span>`;
-            
-            let lower = cleanBrand.toLowerCase();
-            if (lower.includes('鞋') || lower.includes('shoe')) {
-                return `<span class="brand-badge brand-shoes">${cleanBrand}</span>`;
-            } else if (lower.includes('浮力') || lower.includes('衣') || lower.includes('褲') || lower.includes('suit') || lower.includes('blueseventy') || lower.includes('blue')) {
-                return `<span class="brand-badge brand-wetsuit">${cleanBrand}</span>`;
-            } else if (lower.includes('compressport')) {
-                return `<span class="brand-badge brand-compressport">COMPRESSPORT</span>`;
-            } else {
-                return `<span class="brand-badge brand-unknown">${cleanBrand}</span>`;
-            }
-        }
+        funfunction getBrandBadgeHtml(brandName) {
+    let cleanBrand = String(brandName || '').trim();
+    if (!cleanBrand) return `<span class="brand-badge brand-compressport">COMPRESSPORT</span>`;
+    
+    let lower = cleanBrand.toLowerCase();
+    
+    // 🌟 1. 前台強制校正：只要包含 blue, bule(打錯的), 或是 seventy, sevety，一律標準化為正確的官方大寫
+    if (lower.includes('blue') || lower.includes('bule') || lower.includes('seve')) {
+        cleanBrand = 'BLUESEVENTY';
+        lower = 'blueseventy';
+    } else if (lower.includes('compress')) {
+        cleanBrand = 'COMPRESSPORT';
+        lower = 'compressport';
+    } else if (lower.includes('bont')) {
+        cleanBrand = 'BONT';
+        lower = 'bont';
+    }
+
+    // 🌟 2. 依據標準化後的名稱渲染漂亮的標籤與顏色
+    if (lower.includes('鞋') || lower.includes('shoe') || lower === 'bont') {
+        return `<span class="brand-badge brand-shoes">${cleanBrand}</span>`;
+    } else if (lower.includes('浮力') || lower.includes('衣') || lower.includes('褲') || lower.includes('suit') || lower === 'blueseventy') {
+        return `<span class="brand-badge brand-wetsuit">${cleanBrand}</span>`;
+    } else if (lower === 'compressport') {
+        return `<span class="brand-badge brand-compressport">COMPRESSPORT</span>`;
+    } else {
+        return `<span class="brand-badge brand-unknown">${cleanBrand}</span>`;
+    }
+}
 
         function refreshKOLList(data) {
             let html = "";
